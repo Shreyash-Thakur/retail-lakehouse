@@ -46,3 +46,36 @@ BATCH2_START, BATCH2_DAYS = BATCH1_START + timedelta(days=BATCH1_DAYS), 14
 # About 50,000 rows in batch 1 once duplicates are added, 5,000 in batch 2.
 BATCH1_ROWS = {"channel_a": 15_000, "channel_b": 12_500, "channel_c": 11_500, "channel_d": 10_000}
 BATCH2_ROWS = {channel: n // 10 for channel, n in BATCH1_ROWS.items()}
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Products
+# MAGIC
+# MAGIC 40 canonical SKUs, `SKU-1001` to `SKU-1040`, each with a category and a unit price.
+
+# COMMAND ----------
+
+CATEGORY_ITEMS = {
+    "Apparel": ["Tee", "Hoodie", "Chinos", "Jacket"],
+    "Footwear": ["Sneaker", "Loafer", "Sandal"],
+    "Home": ["Mug", "Throw", "Lamp"],
+    "Electronics": ["Earbuds", "Charger", "Speaker"],
+}
+PRICE_RANGE = {"Apparel": (499, 2999), "Footwear": (999, 4999), "Home": (299, 1999), "Electronics": (799, 5999)}
+ADJECTIVES = ["Classic", "Urban", "Everyday", "Premium", "Lite"]
+
+products = []
+for i in range(40):
+    category = random.choice(list(CATEGORY_ITEMS))
+    low, high = PRICE_RANGE[category]
+    products.append(
+        {
+            "canonical_sku": f"SKU-{1001 + i}",
+            "product_name": f"{random.choice(ADJECTIVES)} {random.choice(CATEGORY_ITEMS[category])}",
+            "category": category,
+            "unit_price": round(random.uniform(low, high), 2),
+        }
+    )
+
+products[:5]
