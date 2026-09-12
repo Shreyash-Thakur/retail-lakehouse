@@ -1,0 +1,14 @@
+# Local notes, not part of the project
+databricks-build-plan.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
