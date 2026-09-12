@@ -117,3 +117,19 @@ SKU_FORMATS = {
 
 def channel_sku(channel: str, canonical_sku: str) -> str:
     return SKU_FORMATS[channel].format(n=canonical_sku.split("-")[1])
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## SKU master
+# MAGIC
+# MAGIC One row per channel code: 40 products x 4 channels = 160 rows.
+
+# COMMAND ----------
+
+sku_master_rows = [
+    [channel_sku(channel, p["canonical_sku"]), p["canonical_sku"], p["product_name"], p["category"]]
+    for channel in HEADERS
+    for p in products
+]
+len(sku_master_rows), sku_master_rows[:4]
