@@ -79,3 +79,41 @@ for i in range(40):
     )
 
 products[:5]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Per-channel formats
+# MAGIC
+# MAGIC Each channel gets its own headers, order ID style, date format and SKU code. The SKU codes all
+# MAGIC carry the same number, so `A-1001`, `PRD1001`, `itm_1001` and `SKU1001` are all `SKU-1001`.
+
+# COMMAND ----------
+
+HEADERS = {
+    "channel_a": ["order_id", "sku", "qty", "price", "order_date"],
+    "channel_b": ["orderId", "productCode", "quantity", "amount", "date"],
+    "channel_c": ["id", "item_sku", "units", "total", "created_at", "meta"],
+    "channel_d": ["ORDER_NO", "SKU_CODE", "QTY", "AMT", "DT"],
+}
+ORDER_ID_FORMATS = {
+    "channel_a": "A{n:07d}",
+    "channel_b": "ORD-B-{n:06d}",
+    "channel_c": "c_{n}",
+    "channel_d": "D/{n:06d}",
+}
+DATE_FORMATS = {
+    "channel_a": "%Y-%m-%d",
+    "channel_b": "%d/%m/%Y",
+    "channel_c": "%m-%d-%Y",
+    "channel_d": "%d-%b-%Y",
+}
+SKU_FORMATS = {
+    "channel_a": "A-{n}",
+    "channel_b": "PRD{n}",
+    "channel_c": "itm_{n}",
+    "channel_d": "SKU{n}",
+}
+
+def channel_sku(channel: str, canonical_sku: str) -> str:
+    return SKU_FORMATS[channel].format(n=canonical_sku.split("-")[1])
