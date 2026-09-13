@@ -183,3 +183,28 @@ def make_orders(channel: str, n_rows: int, start: date, days: int, first_id: int
             row.append(json.dumps({"promo_code": random.choice(PROMO_CODES), "source": random.choice(SOURCES)}))
         rows.append(row)
     return rows
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Duplicates
+# MAGIC
+# MAGIC About 2% of orders are sent twice within a channel. The re-sent copy keeps the order ID but
+# MAGIC its date is nudged by up to a day, the way a source system re-exports an edited order.
+# MAGIC Silver has to keep exactly one of them.
+
+# COMMAND ----------
+
+DATE_COLUMN = 4
+
+def add_duplicates(rows: list[list[str]], channel: str) -> list[list[str]]:
+    fmt = DATE_FORMATS[channel]
+    dupes = []
+    for row in random.sample(rows, int(len(rows) * DUPLICATE_RATE)):
+        dupe = list(row)
+        original = datetime.strptime(row[DATE_COLUMN], fmt).date()
+        dupe[DATE_COLUMN] = (original + timedelta(days=random.choice([0, 1]))).strftime(fmt)
+        dupes.append(dupe)
+    combined = rows + dupes
+    random.shuffle(combined)
+    return combined
