@@ -231,3 +231,17 @@ write_csv("sku_master", ["channel_sku", "canonical_sku", "product_name", "catego
 for channel, n_rows in BATCH1_ROWS.items():
     rows = make_orders(channel, n_rows, BATCH1_START, BATCH1_DAYS, first_id=1)
     write_csv(channel, HEADERS[channel], add_duplicates(rows, channel))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Batch 2
+# MAGIC
+# MAGIC 5,000 more rows, dated after batch 1, with new order IDs. Same dirt rates. These land as
+# MAGIC `*_batch2.csv` and are only ingested when 01_bronze runs with `batch = 2`.
+
+# COMMAND ----------
+
+for channel, n_rows in BATCH2_ROWS.items():
+    rows = make_orders(channel, n_rows, BATCH2_START, BATCH2_DAYS, first_id=500_001)
+    write_csv(f"{channel}_batch2", HEADERS[channel], add_duplicates(rows, channel))
