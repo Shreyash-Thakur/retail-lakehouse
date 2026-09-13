@@ -245,3 +245,19 @@ for channel, n_rows in BATCH1_ROWS.items():
 for channel, n_rows in BATCH2_ROWS.items():
     rows = make_orders(channel, n_rows, BATCH2_START, BATCH2_DAYS, first_id=500_001)
     write_csv(f"{channel}_batch2", HEADERS[channel], add_duplicates(rows, channel))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Check
+# MAGIC
+# MAGIC Read one file back with Spark and look at it. The mess should be visible: empty totals, odd
+# MAGIC dates, the JSON column.
+
+# COMMAND ----------
+
+display(
+    spark.read.options(header="true", quote='"', escape='"')
+    .csv(f"{RAW_PATH}/channel_c.csv")
+    .limit(20)
+)
