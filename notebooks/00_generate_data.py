@@ -208,3 +208,26 @@ def add_duplicates(rows: list[list[str]], channel: str) -> list[list[str]]:
     combined = rows + dupes
     random.shuffle(combined)
     return combined
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Write the files
+# MAGIC
+# MAGIC Plain Python file I/O works on Unity Catalog volumes, so no Spark is needed to write CSVs.
+# MAGIC The csv module quotes the JSON in channel_c's meta column and doubles its inner quotes.
+
+# COMMAND ----------
+
+def write_csv(name: str, header: list[str], rows: list[list[str]]) -> None:
+    with open(f"{RAW_PATH}/{name}.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(rows)
+    print(f"{name}.csv: {len(rows):,} rows")
+
+write_csv("sku_master", ["channel_sku", "canonical_sku", "product_name", "category"], sku_master_rows)
+
+for channel, n_rows in BATCH1_ROWS.items():
+    rows = make_orders(channel, n_rows, BATCH1_START, BATCH1_DAYS, first_id=1)
+    write_csv(channel, HEADERS[channel], add_duplicates(rows, channel))
