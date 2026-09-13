@@ -47,6 +47,11 @@ BATCH2_START, BATCH2_DAYS = BATCH1_START + timedelta(days=BATCH1_DAYS), 14
 BATCH1_ROWS = {"channel_a": 15_000, "channel_b": 12_500, "channel_c": 11_500, "channel_d": 10_000}
 BATCH2_ROWS = {channel: n // 10 for channel, n in BATCH1_ROWS.items()}
 
+DUPLICATE_RATE = 0.02
+NULL_PRICE_RATE = 0.01
+NEGATIVE_QTY_RATE = 0.005
+UNKNOWN_SKU_RATE = 0.01
+
 # COMMAND ----------
 
 # MAGIC %md
@@ -133,3 +138,48 @@ sku_master_rows = [
     for p in products
 ]
 len(sku_master_rows), sku_master_rows[:4]
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Orders
+# MAGIC
+# MAGIC One order is one SKU line. The dirt is applied per row at fixed rates:
+# MAGIC
+# MAGIC - **unknown SKU** (1%): a code in the 9000s, which the SKU master does not have
+# MAGIC - **negative quantity** (0.5%): the sign flips, the amount stays positive, like a bad keying
+# MAGIC - **null price** (1%): the amount column is left empty
+# MAGIC
+# MAGIC channel_c also gets a `meta` column holding JSON with `promo_code` and `source`.
+
+# COMMAND ----------
+
+PROMO_CODES = ["SAVE10", "FESTIVE20", "WELCOME5", None, None, None]
+SOURCES = ["web", "app", "marketplace"]
+
+def make_orders(channel: str, n_rows: int, start: date, days: int, first_id: int) -> list[list[str]]:
+    rows = []
+    for i in range(n_rows):
+        product = random.choice(products)
+        qty = random.randint(1, 5)
+        amount = round(qty * product["unit_price"], 2)
+        order_date = start + timedelta(days=random.randrange(days))
+
+        sku = channel_sku(channel, product["canonical_sku"])
+        if random.random() < UNKNOWN_SKU_RATE:
+            sku = channel_sku(channel, f"SKU-{random.randint(9001, 9020)}")
+        if random.random() < NEGATIVE_QTY_RATE:
+            qty = -qty
+        price = "" if random.random() < NULL_PRICE_RATE else f"{amount:.2f}"
+
+        row = [
+            ORDER_ID_FORMATS[channel].format(n=first_id + i),
+            sku,
+            str(qty),
+            price,
+            order_date.strftime(DATE_FORMATS[channel]),
+        ]
+        if channel == "channel_c":
+            row.append(json.dumps({"promo_code": random.choice(PROMO_CODES), "source": random.choice(SOURCES)}))
+        rows.append(row)
+    return rows
