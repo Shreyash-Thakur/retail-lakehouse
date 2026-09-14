@@ -5,6 +5,9 @@ Databricks workspace. Notebooks import it by putting ../src on sys.path.
 """
 from __future__ import annotations
 
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
+
 
 CATALOG = "lakehouse"
 SCHEMA = "retail"
@@ -20,4 +23,25 @@ def fq(table: str) -> str:
 
 # ---------------------------------------------------------------------------
 # Bronze
+# ---------------------------------------------------------------------------
+
+CSV_OPTIONS = {"header": "true"}
+
+
+def read_raw_csv(spark, path: str) -> DataFrame:
+    """Read a landing CSV exactly as-is: every column a string, nothing renamed."""
+    return spark.read.options(**CSV_OPTIONS).csv(path)
+
+
+def add_ingest_metadata(df: DataFrame) -> DataFrame:
+    """Bronze audit columns. The file path comes from the hidden _metadata column."""
+    return (
+        df.withColumn("_ingested_at", F.current_timestamp())
+        .withColumn("_source_file", F.col("_metadata.file_path"))
+        .withColumn("_ingest_date", F.current_date())
+    )
+
+
+# ---------------------------------------------------------------------------
+# Silver: conforming the four channels
 # ---------------------------------------------------------------------------
