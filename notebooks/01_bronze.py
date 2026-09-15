@@ -34,3 +34,19 @@ from lakehouse_utils import CHANNELS, RAW_VOLUME_PATH, add_ingest_metadata, fq, 
 
 dbutils.widgets.dropdown("batch", "1", ["1", "2"], "Source batch")
 SUFFIX = "" if dbutils.widgets.get("batch") == "1" else "_batch2"
+
+# COMMAND ----------
+
+def ingest(source_name: str, table: str) -> int:
+    """Append one landing file to its Bronze table, untouched apart from audit columns."""
+    df = add_ingest_metadata(read_raw_csv(spark, f"{RAW_VOLUME_PATH}/{source_name}.csv"))
+    (
+        df.write.format("delta")
+        .mode("append")
+        .partitionBy("_ingest_date")
+        .saveAsTable(fq(table))
+    )
+    return df.count()
+
+for channel in CHANNELS:
+    print(f"bronze_{channel}: {ingest(channel + SUFFIX, f'bronze_{channel}'):,} rows appended")
