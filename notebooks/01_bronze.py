@@ -53,3 +53,17 @@ for channel in CHANNELS:
 
 # The SKU master is small and may change, so it is re-landed with every batch. Silver uses the newest row per code.
 print(f"bronze_sku_master: {ingest('sku_master', 'bronze_sku_master'):,} rows appended")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Row counts
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT 'bronze_channel_a' AS table_name, count(*) AS row_count FROM lakehouse.retail.bronze_channel_a
+# MAGIC UNION ALL SELECT 'bronze_channel_b', count(*) FROM lakehouse.retail.bronze_channel_b
+# MAGIC UNION ALL SELECT 'bronze_channel_c', count(*) FROM lakehouse.retail.bronze_channel_c
+# MAGIC UNION ALL SELECT 'bronze_channel_d', count(*) FROM lakehouse.retail.bronze_channel_d
+# MAGIC UNION ALL SELECT 'bronze_sku_master', count(*) FROM lakehouse.retail.bronze_sku_master
