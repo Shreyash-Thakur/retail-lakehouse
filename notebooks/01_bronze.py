@@ -24,3 +24,13 @@ import sys
 sys.path.append(os.path.abspath("../src"))
 
 from lakehouse_utils import CHANNELS, RAW_VOLUME_PATH, add_ingest_metadata, fq, read_raw_csv
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Batch 1 is the initial 90 days. Batch 2 is the later `_batch2` files, for the incremental test in 02_silver.
+
+# COMMAND ----------
+
+dbutils.widgets.dropdown("batch", "1", ["1", "2"], "Source batch")
+SUFFIX = "" if dbutils.widgets.get("batch") == "1" else "_batch2"
