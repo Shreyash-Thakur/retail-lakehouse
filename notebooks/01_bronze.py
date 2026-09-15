@@ -50,3 +50,6 @@ def ingest(source_name: str, table: str) -> int:
 
 for channel in CHANNELS:
     print(f"bronze_{channel}: {ingest(channel + SUFFIX, f'bronze_{channel}'):,} rows appended")
+
+# The SKU master is small and may change, so it is re-landed with every batch. Silver uses the newest row per code.
+print(f"bronze_sku_master: {ingest('sku_master', 'bronze_sku_master'):,} rows appended")
