@@ -67,3 +67,16 @@ print(f"bronze_sku_master: {ingest('sku_master', 'bronze_sku_master'):,} rows ap
 # MAGIC UNION ALL SELECT 'bronze_channel_c', count(*) FROM lakehouse.retail.bronze_channel_c
 # MAGIC UNION ALL SELECT 'bronze_channel_d', count(*) FROM lakehouse.retail.bronze_channel_d
 # MAGIC UNION ALL SELECT 'bronze_sku_master', count(*) FROM lakehouse.retail.bronze_sku_master
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Delta metadata
+# MAGIC
+# MAGIC `DESCRIBE DETAIL` shows the format, location, partition columns and file count. The table is
+# MAGIC Parquet files plus a `_delta_log` of JSON commits.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC DESCRIBE DETAIL lakehouse.retail.bronze_channel_a
