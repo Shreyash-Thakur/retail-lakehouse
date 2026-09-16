@@ -80,3 +80,15 @@ print(f"bronze_sku_master: {ingest('sku_master', 'bronze_sku_master'):,} rows ap
 
 # MAGIC %sql
 # MAGIC DESCRIBE DETAIL lakehouse.retail.bronze_channel_a
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Check
+# MAGIC
+# MAGIC Raw strings, mess included: the dates are still text and a few prices are null.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM lakehouse.retail.bronze_channel_a LIMIT 10
