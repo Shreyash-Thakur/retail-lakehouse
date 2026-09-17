@@ -92,3 +92,9 @@ print(f"bronze_sku_master: {ingest('sku_master', 'bronze_sku_master'):,} rows ap
 
 # MAGIC %sql
 # MAGIC SELECT * FROM lakehouse.retail.bronze_channel_a LIMIT 10
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC -- channel_c's JSON should sit in one column, not spill across several.
+# MAGIC SELECT id, created_at, meta FROM lakehouse.retail.bronze_channel_c LIMIT 10
