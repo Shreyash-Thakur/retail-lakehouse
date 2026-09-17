@@ -6,6 +6,12 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.pytest_cache/
+
+# Local Spark runs (tests)
+spark-warehouse/
+metastore_db/
+derby.log
 
 # Editors / OS
 .vscode/
