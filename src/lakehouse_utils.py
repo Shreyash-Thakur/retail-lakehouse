@@ -25,7 +25,10 @@ def fq(table: str) -> str:
 # Bronze
 # ---------------------------------------------------------------------------
 
-CSV_OPTIONS = {"header": "true"}
+# channel_c's meta column is JSON, which the csv module writes with doubled
+# quotes. Spark's default escape is a backslash, so without this the JSON gets
+# split across several columns.
+CSV_OPTIONS = {"header": "true", "quote": '"', "escape": '"'}
 
 
 def read_raw_csv(spark, path: str) -> DataFrame:
