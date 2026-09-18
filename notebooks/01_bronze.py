@@ -70,6 +70,15 @@ print(f"bronze_sku_master: {ingest('sku_master', 'bronze_sku_master'):,} rows ap
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC -- One row per load, so a second batch (or an accidental double run) is visible.
+# MAGIC SELECT _ingested_at, _source_file, count(*) AS rows
+# MAGIC FROM lakehouse.retail.bronze_channel_a
+# MAGIC GROUP BY ALL
+# MAGIC ORDER BY _ingested_at
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Delta metadata
 # MAGIC
