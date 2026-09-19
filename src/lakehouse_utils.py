@@ -48,3 +48,40 @@ def add_ingest_metadata(df: DataFrame) -> DataFrame:
 # ---------------------------------------------------------------------------
 # Silver: conforming the four channels
 # ---------------------------------------------------------------------------
+
+# Raw column -> conformed column, per channel. Anything not listed is dropped,
+# which is also why a new Bronze column (see 05_demos) cannot break Silver.
+COLUMN_MAP = {
+    "channel_a": {
+        "order_id": "order_id",
+        "sku": "sku_raw",
+        "qty": "quantity",
+        "price": "amount",
+        "order_date": "order_date",
+    },
+    "channel_b": {
+        "orderId": "order_id",
+        "productCode": "sku_raw",
+        "quantity": "quantity",
+        "amount": "amount",
+        "date": "order_date",
+    },
+    "channel_c": {
+        "id": "order_id",
+        "item_sku": "sku_raw",
+        "units": "quantity",
+        "total": "amount",
+        "created_at": "order_date",
+        "meta": "meta",
+    },
+    "channel_d": {
+        "ORDER_NO": "order_id",
+        "SKU_CODE": "sku_raw",
+        "QTY": "quantity",
+        "AMT": "amount",
+        "DT": "order_date",
+    },
+}
+
+CONFORMED_COLUMNS = ("order_id", "channel", "sku_raw", "quantity", "amount", "order_date", "meta")
+BRONZE_AUDIT_COLUMNS = ("_ingested_at", "_source_file")
