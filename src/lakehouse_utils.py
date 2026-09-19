@@ -120,3 +120,12 @@ def parse_order_date(col: Column) -> Column:
     """
     attempts = [F.try_to_timestamp(col, F.lit(p)).cast("date") for p in DATE_PATTERNS]
     return F.coalesce(*attempts)
+
+
+def cast_measures(df: DataFrame) -> DataFrame:
+    """quantity -> int, amount -> decimal(12,2), order_date -> date."""
+    return (
+        df.withColumn("quantity", F.col("quantity").cast("int"))
+        .withColumn("amount", F.col("amount").cast("decimal(12,2)"))
+        .withColumn("order_date", parse_order_date(F.col("order_date")))
+    )
