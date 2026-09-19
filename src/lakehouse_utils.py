@@ -5,7 +5,7 @@ Databricks workspace. Notebooks import it by putting ../src on sys.path.
 """
 from __future__ import annotations
 
-from pyspark.sql import DataFrame
+from pyspark.sql import Column, DataFrame
 from pyspark.sql import functions as F
 
 
@@ -104,3 +104,19 @@ def normalise_columns(df: DataFrame, channel: str) -> DataFrame:
             cols.append(F.lit(None).cast("string").alias(name))
     audit = [F.col(c) for c in BRONZE_AUDIT_COLUMNS if c in df.columns]
     return df.select(*cols, *audit)
+
+
+# One pattern per channel. No string in the data parses under more than one of
+# them, so the order only matters for speed.
+DATE_PATTERNS = ("yyyy-MM-dd", "dd/MM/yyyy", "MM-dd-yyyy", "dd-MMM-yyyy")
+
+
+def parse_order_date(col: Column) -> Column:
+    """Coalesce over one parse attempt per pattern instead of branching per channel.
+
+    try_to_timestamp rather than to_date: with ANSI mode on (the default on
+    serverless) to_date raises on the first string that does not match, and in
+    a coalesce every pattern but one is a mismatch.
+    """
+    attempts = [F.try_to_timestamp(col, F.lit(p)).cast("date") for p in DATE_PATTERNS]
+    return F.coalesce(*attempts)
