@@ -13,3 +13,13 @@ def test_channel_b_columns_are_renamed(spark):
     assert row["amount"] == "998.00"
     assert row["order_date"] == "14/03/2026"
     assert row["channel"] == "channel_b"
+
+
+def test_channels_without_meta_get_null_meta(spark):
+    df = spark.createDataFrame(
+        [("D/000001", "SKU1001", "1", "499.00", "14-Mar-2026")],
+        "ORDER_NO string, SKU_CODE string, QTY string, AMT string, DT string",
+    )
+    out = normalise_columns(df, "channel_d")
+    assert tuple(out.columns) == CONFORMED_COLUMNS
+    assert out.first()["meta"] is None
