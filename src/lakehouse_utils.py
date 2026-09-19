@@ -85,3 +85,22 @@ COLUMN_MAP = {
 
 CONFORMED_COLUMNS = ("order_id", "channel", "sku_raw", "quantity", "amount", "order_date", "meta")
 BRONZE_AUDIT_COLUMNS = ("_ingested_at", "_source_file")
+
+
+def normalise_columns(df: DataFrame, channel: str) -> DataFrame:
+    """Rename one channel's raw columns to the conformed names.
+
+    Columns a channel does not have (only channel_c has meta) become typed
+    nulls, so the four frames can be unioned by name.
+    """
+    renamed = {conformed: raw for raw, conformed in COLUMN_MAP[channel].items()}
+    cols = []
+    for name in CONFORMED_COLUMNS:
+        if name == "channel":
+            cols.append(F.lit(channel).alias(name))
+        elif name in renamed:
+            cols.append(F.col(f"`{renamed[name]}`").alias(name))
+        else:
+            cols.append(F.lit(None).cast("string").alias(name))
+    audit = [F.col(c) for c in BRONZE_AUDIT_COLUMNS if c in df.columns]
+    return df.select(*cols, *audit)
