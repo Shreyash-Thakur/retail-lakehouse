@@ -129,3 +129,17 @@ def cast_measures(df: DataFrame) -> DataFrame:
         .withColumn("amount", F.col("amount").cast("decimal(12,2)"))
         .withColumn("order_date", parse_order_date(F.col("order_date")))
     )
+
+
+META_SCHEMA = "promo_code STRING, source STRING"
+
+
+def parse_meta(df: DataFrame) -> DataFrame:
+    """Pull promo_code and source out of channel_c's JSON meta column.
+
+    Other channels have a null meta, so they get nulls here too.
+    """
+    parsed = F.from_json(F.col("meta"), META_SCHEMA)
+    return df.withColumn("promo_code", parsed["promo_code"]).withColumn(
+        "order_source", parsed["source"]
+    )
