@@ -159,3 +159,22 @@ def deduplicate_latest(
         .filter(F.col("_rn") == 1)
         .drop("_rn")
     )
+
+
+def latest_sku_master(sku_master: DataFrame) -> DataFrame:
+    """bronze_sku_master is append-only, so keep the newest row per channel_sku."""
+    return deduplicate_latest(sku_master, key="channel_sku").select(
+        "channel_sku", "canonical_sku", "product_name", "category"
+    )
+
+
+def resolve_skus(orders: DataFrame, sku_master: DataFrame) -> DataFrame:
+    """Left join to the SKU master. Rows that do not resolve are kept and flagged."""
+    master = sku_master.select(
+        F.col("channel_sku").alias("_channel_sku"), "canonical_sku", "product_name", "category"
+    )
+    return (
+        orders.join(master, orders["sku_raw"] == master["_channel_sku"], "left")
+        .drop("_channel_sku")
+        .withColumn("sku_resolved", F.col("canonical_sku").isNotNull())
+    )
