@@ -5,7 +5,7 @@ Databricks workspace. Notebooks import it by putting ../src on sys.path.
 """
 from __future__ import annotations
 
-from pyspark.sql import Column, DataFrame
+from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql import functions as F
 
 
@@ -142,4 +142,20 @@ def parse_meta(df: DataFrame) -> DataFrame:
     parsed = F.from_json(F.col("meta"), META_SCHEMA)
     return df.withColumn("promo_code", parsed["promo_code"]).withColumn(
         "order_source", parsed["source"]
+    )
+
+
+def deduplicate_latest(
+    df: DataFrame, key: str = "order_id", order_by: tuple[str, ...] = ("_ingested_at",)
+) -> DataFrame:
+    """Keep one row per key: the first when sorted by order_by, descending.
+
+    row_number rather than rank, so a tie still yields exactly one row. MERGE
+    needs that: a source with two rows for one key makes the MERGE fail.
+    """
+    window = Window.partitionBy(key).orderBy(*[F.col(c).desc_nulls_last() for c in order_by])
+    return (
+        df.withColumn("_rn", F.row_number().over(window))
+        .filter(F.col("_rn") == 1)
+        .drop("_rn")
     )
