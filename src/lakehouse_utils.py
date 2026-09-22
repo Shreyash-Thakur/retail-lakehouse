@@ -178,3 +178,37 @@ def resolve_skus(orders: DataFrame, sku_master: DataFrame) -> DataFrame:
         .drop("_channel_sku")
         .withColumn("sku_resolved", F.col("canonical_sku").isNotNull())
     )
+
+
+SILVER_COLUMNS = (
+    "order_id",
+    "channel",
+    "sku_raw",
+    "canonical_sku",
+    "product_name",
+    "category",
+    "sku_resolved",
+    "quantity",
+    "amount",
+    "order_date",
+    "meta",
+    "promo_code",
+    "order_source",
+    "_ingested_at",
+    "_source_file",
+    "_processed_at",
+)
+
+
+def prepare_silver_batch(bronze: dict[str, DataFrame], sku_master: DataFrame) -> DataFrame:
+    """Bronze slices, keyed by channel, -> one conformed, deduplicated batch."""
+    conformed = [normalise_columns(df, channel) for channel, df in bronze.items()]
+    unioned = conformed[0]
+    for df in conformed[1:]:
+        unioned = unioned.unionByName(df)
+    typed = parse_meta(cast_measures(unioned))
+    resolved = resolve_skus(typed, latest_sku_master(sku_master))
+    # Duplicates re-sent within a channel carry a later date, so it breaks ties
+    # between rows that arrived in the same Bronze load.
+    deduped = deduplicate_latest(resolved, "order_id", ("_ingested_at", "order_date"))
+    return deduped.withColumn("_processed_at", F.current_timestamp()).select(*SILVER_COLUMNS)
