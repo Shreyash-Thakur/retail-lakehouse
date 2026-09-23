@@ -30,3 +30,21 @@
 # MAGIC It is `row_number`, not `rank`, on purpose. `rank` gives tied rows the same number, so two identical
 # MAGIC copies would both survive. `row_number` always produces exactly one row per key.
 # MAGIC That matters for the next step.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## The MERGE
+# MAGIC
+# MAGIC ```sql
+# MAGIC MERGE INTO silver_orders t USING batch s ON t.order_id = s.order_id
+# MAGIC WHEN MATCHED THEN UPDATE SET *
+# MAGIC WHEN NOT MATCHED THEN INSERT *
+# MAGIC ```
+# MAGIC
+# MAGIC An append writes every incoming row, so processing the same data twice doubles it. MERGE upserts on
+# MAGIC the key: an order already in Silver is updated in place, and a new one is inserted. Running the same
+# MAGIC batch twice leaves the table as it was, which makes the job **idempotent** and so safe to retry.
+# MAGIC
+# MAGIC MERGE fails if two source rows match the same target row, which is why the dedup above has to
+# MAGIC guarantee one row per `order_id`.
