@@ -48,3 +48,41 @@
 # MAGIC
 # MAGIC MERGE fails if two source rows match the same target row, which is why the dedup above has to
 # MAGIC guarantee one row per `order_id`.
+
+# COMMAND ----------
+
+import os
+import sys
+
+from delta.tables import DeltaTable
+from pyspark.sql import functions as F
+
+sys.path.append(os.path.abspath("../src"))
+
+from lakehouse_utils import (
+    CHANNELS,
+    ensure_watermark_table,
+    fq,
+    prepare_silver_batch,
+    read_since_watermark,
+    set_watermark,
+    slice_stats,
+)
+
+SILVER = fq("silver_orders")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 1. Read only what is new
+
+# COMMAND ----------
+
+ensure_watermark_table(spark)
+
+bronze, new_rows, new_max = {}, {}, {}
+for channel in CHANNELS:
+    table = f"bronze_{channel}"
+    bronze[channel] = read_since_watermark(spark, table)
+    new_rows[table], new_max[table] = slice_stats(bronze[channel])
+    print(f"{table}: {new_rows[table]:,} new rows")
