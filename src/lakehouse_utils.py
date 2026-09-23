@@ -212,3 +212,67 @@ def prepare_silver_batch(bronze: dict[str, DataFrame], sku_master: DataFrame) ->
     # between rows that arrived in the same Bronze load.
     deduped = deduplicate_latest(resolved, "order_id", ("_ingested_at", "order_date"))
     return deduped.withColumn("_processed_at", F.current_timestamp()).select(*SILVER_COLUMNS)
+
+
+# ---------------------------------------------------------------------------
+# Incremental load
+# ---------------------------------------------------------------------------
+
+WATERMARK_TABLE = "_watermark"
+# Watermarks travel as strings formatted by Spark in the session time zone and
+# are parsed back the same way, so the driver's Python time zone never gets a
+# chance to shift them.
+TS_FORMAT = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+
+
+def ensure_watermark_table(spark) -> None:
+    spark.sql(
+        f"""
+        CREATE TABLE IF NOT EXISTS {fq(WATERMARK_TABLE)} (
+            table_name STRING,
+            last_processed_ts TIMESTAMP
+        ) USING DELTA
+        """
+    )
+
+
+def get_watermark(spark, table_name: str) -> str | None:
+    """Last _ingested_at already processed for a Bronze table, or None."""
+    return (
+        spark.table(fq(WATERMARK_TABLE))
+        .filter(F.col("table_name") == table_name)
+        .agg(F.date_format(F.max("last_processed_ts"), TS_FORMAT))
+        .first()[0]
+    )
+
+
+def read_since_watermark(spark, table_name: str) -> DataFrame:
+    """Only the Bronze rows that arrived after the watermark."""
+    df = spark.table(fq(table_name))
+    watermark = get_watermark(spark, table_name)
+    if watermark is None:
+        return df
+    return df.filter(F.col("_ingested_at") > F.lit(watermark).cast("timestamp"))
+
+
+def slice_stats(df: DataFrame) -> tuple[int, str | None]:
+    """Row count and max _ingested_at of a Bronze slice, in one pass."""
+    row = df.agg(F.count(F.lit(1)), F.date_format(F.max("_ingested_at"), TS_FORMAT)).first()
+    return row[0], row[1]
+
+
+def set_watermark(spark, table_name: str, last_processed_ts: str) -> None:
+    """Upsert the watermark. Call only after the Silver MERGE has committed."""
+    spark.sql(
+        f"""
+        MERGE INTO {fq(WATERMARK_TABLE)} AS t
+        USING (
+            SELECT :table_name AS table_name,
+                   CAST(:ts AS TIMESTAMP) AS last_processed_ts
+        ) AS s
+        ON t.table_name = s.table_name
+        WHEN MATCHED THEN UPDATE SET t.last_processed_ts = s.last_processed_ts
+        WHEN NOT MATCHED THEN INSERT *
+        """,
+        args={"table_name": table_name, "ts": last_processed_ts},
+    )
