@@ -124,3 +124,18 @@ before = spark.table(SILVER).count()
 
 after = spark.table(SILVER).count()
 print(f"silver_orders: {before:,} -> {after:,} rows ({after - before:+,})")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 5. Advance the watermark
+# MAGIC
+# MAGIC Only now, after the MERGE has committed.
+
+# COMMAND ----------
+
+for table, max_ts in new_max.items():
+    if max_ts is not None:
+        set_watermark(spark, table, max_ts)
+
+display(spark.table(fq("_watermark")).orderBy("table_name"))
