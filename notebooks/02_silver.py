@@ -99,3 +99,28 @@ if sum(new_rows.values()) == 0:
 
 batch = prepare_silver_batch(bronze, spark.table(fq("bronze_sku_master")))
 display(batch.limit(20))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 4. MERGE into Silver
+
+# COMMAND ----------
+
+if not spark.catalog.tableExists(SILVER):
+    # Version 0 is the empty table, which gives 05_demos a clean baseline for time travel.
+    batch.limit(0).write.format("delta").saveAsTable(SILVER)
+
+before = spark.table(SILVER).count()
+
+(
+    DeltaTable.forName(spark, SILVER)
+    .alias("t")
+    .merge(batch.alias("s"), "t.order_id = s.order_id")
+    .whenMatchedUpdateAll()
+    .whenNotMatchedInsertAll()
+    .execute()
+)
+
+after = spark.table(SILVER).count()
+print(f"silver_orders: {before:,} -> {after:,} rows ({after - before:+,})")
