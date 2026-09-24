@@ -89,3 +89,13 @@ for channel in CHANNELS:
 
 if sum(new_rows.values()) == 0:
     dbutils.notebook.exit("0 new Bronze rows since the watermark. Nothing to process.")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 2. Conform, type, resolve SKUs, deduplicate
+
+# COMMAND ----------
+
+batch = prepare_silver_batch(bronze, spark.table(fq("bronze_sku_master")))
+display(batch.limit(20))
