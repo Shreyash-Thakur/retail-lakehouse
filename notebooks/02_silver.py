@@ -86,3 +86,6 @@ for channel in CHANNELS:
     bronze[channel] = read_since_watermark(spark, table)
     new_rows[table], new_max[table] = slice_stats(bronze[channel])
     print(f"{table}: {new_rows[table]:,} new rows")
+
+if sum(new_rows.values()) == 0:
+    dbutils.notebook.exit("0 new Bronze rows since the watermark. Nothing to process.")
