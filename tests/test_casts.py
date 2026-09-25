@@ -17,3 +17,10 @@ def test_empty_price_becomes_null_and_negative_quantity_survives(spark):
     row = cast_measures(df).first()
     assert row["quantity"] == -2
     assert row["amount"] is None
+
+
+def test_non_numeric_strings_become_null_instead_of_failing(spark):
+    df = spark.createDataFrame([("two", "n/a", "2026-03-14")], "quantity string, amount string, order_date string")
+    row = cast_measures(df).first()
+    assert row["quantity"] is None
+    assert row["amount"] is None

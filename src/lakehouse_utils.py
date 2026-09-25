@@ -122,11 +122,16 @@ def parse_order_date(col: Column) -> Column:
     return F.coalesce(*attempts)
 
 
+def try_cast(col_name: str, type_name: str) -> Column:
+    """SQL try_cast: a bad string becomes null instead of failing the job under ANSI."""
+    return F.expr(f"try_cast(`{col_name}` AS {type_name})")
+
+
 def cast_measures(df: DataFrame) -> DataFrame:
     """quantity -> int, amount -> decimal(12,2), order_date -> date."""
     return (
-        df.withColumn("quantity", F.col("quantity").cast("int"))
-        .withColumn("amount", F.col("amount").cast("decimal(12,2)"))
+        df.withColumn("quantity", try_cast("quantity", "int"))
+        .withColumn("amount", try_cast("amount", "decimal(12,2)"))
         .withColumn("order_date", parse_order_date(F.col("order_date")))
     )
 
