@@ -14,3 +14,8 @@ from lakehouse_utils import parse_order_date
 def test_every_channel_format_parses_to_the_same_date(spark, raw):
     df = spark.createDataFrame([(raw,)], "d string")
     assert df.select(parse_order_date(F.col("d"))).first()[0] == date(2026, 3, 14)
+
+
+def test_unparseable_date_is_null_not_an_error(spark):
+    df = spark.createDataFrame([("not a date",), (None,)], "d string")
+    assert [r[0] for r in df.select(parse_order_date(F.col("d"))).collect()] == [None, None]

@@ -17,6 +17,8 @@ def spark():
         .config("spark.sql.shuffle.partitions", "1")
         .config("spark.sql.session.timeZone", "UTC")
         .config("spark.ui.enabled", "false")
+        # Match Databricks serverless, where ANSI mode is on by default.
+        .config("spark.sql.ansi.enabled", "true")
         .getOrCreate()
     )
     yield session
