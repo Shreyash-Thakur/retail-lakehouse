@@ -51,6 +51,18 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## The watermark
+# MAGIC
+# MAGIC `_watermark` holds, per Bronze table, the latest `_ingested_at` Silver has processed. Each run reads
+# MAGIC only Bronze rows newer than that, and moves the watermark forward **only after the MERGE commits**.
+# MAGIC
+# MAGIC If the job dies between the MERGE and the watermark update, the next run reads the same rows again.
+# MAGIC Because the MERGE is idempotent, re-processing them changes nothing. Moving the watermark first would
+# MAGIC be the dangerous order: a crash would then skip rows for good.
+
+# COMMAND ----------
+
 import os
 import sys
 
