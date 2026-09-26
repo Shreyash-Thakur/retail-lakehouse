@@ -31,3 +31,16 @@ def test_unknown_sku_is_kept_and_flagged(spark):
     assert len(out) == 1
     assert out[0]["canonical_sku"] is None
     assert out[0]["sku_resolved"] is False
+
+
+def test_latest_sku_master_keeps_newest_mapping(spark):
+    df = spark.sql(
+        """
+        SELECT * FROM VALUES
+          ('A-1001', 'SKU-1001', 'Classic Tee', 'Apparel', TIMESTAMP'2026-09-20 10:00:00'),
+          ('A-1001', 'SKU-1001', 'Classic Tee v2', 'Apparel', TIMESTAMP'2026-09-21 10:00:00')
+        AS t(channel_sku, canonical_sku, product_name, category, _ingested_at)
+        """
+    )
+    rows = latest_sku_master(df).collect()
+    assert [r["product_name"] for r in rows] == ["Classic Tee v2"]
