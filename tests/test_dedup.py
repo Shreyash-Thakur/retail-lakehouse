@@ -28,3 +28,13 @@ def test_same_load_duplicates_fall_back_to_the_later_order_date(spark):
     assert [r["amount"] for r in rows] == [100]
 
 
+def test_full_tie_still_returns_exactly_one_row(spark):
+    df = spark.sql(
+        """
+        SELECT * FROM VALUES
+          ('A1', 100, TIMESTAMP'2026-09-20 10:00:00', DATE'2026-03-14'),
+          ('A1', 100, TIMESTAMP'2026-09-20 10:00:00', DATE'2026-03-14')
+        AS t(order_id, amount, _ingested_at, order_date)
+        """
+    )
+    assert deduplicate_latest(df).count() == 1
