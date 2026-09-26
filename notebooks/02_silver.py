@@ -177,3 +177,21 @@ display(spark.table(fq("_watermark")).orderBy("table_name"))
 # MAGIC 3. **Re-run on processed data.** Run 01_bronze with `batch = 1` again, so the same files are landed a
 # MAGIC    second time with a newer `_ingested_at`. This notebook reads all of them, and the MERGE matches
 # MAGIC    every one. The row count does not change.
+
+# COMMAND ----------
+
+# Each MERGE is one table version. operationMetrics shows how many rows each run inserted vs updated.
+metrics = F.col("operationMetrics")
+display(
+    DeltaTable.forName(spark, SILVER)
+    .history()
+    .select(
+        "version",
+        "timestamp",
+        "operation",
+        metrics["numSourceRows"].alias("source_rows"),
+        metrics["numTargetRowsInserted"].alias("inserted"),
+        metrics["numTargetRowsUpdated"].alias("updated"),
+    )
+    .orderBy("version")
+)
