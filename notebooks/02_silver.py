@@ -114,6 +114,19 @@ display(batch.limit(20))
 
 # COMMAND ----------
 
+display(
+    batch.groupBy("channel").agg(
+        F.count("*").alias("rows"),
+        F.sum((~F.col("sku_resolved")).cast("int")).alias("unresolved_sku"),
+        F.sum((F.col("quantity") < 0).cast("int")).alias("negative_qty"),
+        F.sum(F.col("amount").isNull().cast("int")).alias("null_amount"),
+        F.min("order_date").alias("first_date"),
+        F.max("order_date").alias("last_date"),
+    )
+)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## 4. MERGE into Silver
 
