@@ -164,3 +164,16 @@ for table, max_ts in new_max.items():
         set_watermark(spark, table, max_ts)
 
 display(spark.table(fq("_watermark")).orderBy("table_name"))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Proving it
+# MAGIC
+# MAGIC 1. **Run this notebook again straight away.** Step 1 finds 0 new rows and the run exits. Nothing is
+# MAGIC    re-read, and the row count is unchanged.
+# MAGIC 2. **Incremental load.** Run 01_bronze with `batch = 2`, then this notebook. Only the `_batch2` rows
+# MAGIC    are read, and the count goes up by the number of new unique order IDs.
+# MAGIC 3. **Re-run on processed data.** Run 01_bronze with `batch = 1` again, so the same files are landed a
+# MAGIC    second time with a newer `_ingested_at`. This notebook reads all of them, and the MERGE matches
+# MAGIC    every one. The row count does not change.
