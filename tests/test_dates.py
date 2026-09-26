@@ -16,6 +16,12 @@ def test_every_channel_format_parses_to_the_same_date(spark, raw):
     assert df.select(parse_order_date(F.col("d"))).first()[0] == date(2026, 3, 14)
 
 
+def test_day_and_month_are_not_swapped(spark):
+    # 03-04-2026 only matches MM-dd-yyyy (channel_c), so it is 4 March.
+    df = spark.createDataFrame([("03-04-2026",)], "d string")
+    assert df.select(parse_order_date(F.col("d"))).first()[0] == date(2026, 3, 4)
+
+
 def test_unparseable_date_is_null_not_an_error(spark):
     df = spark.createDataFrame([("not a date",), (None,)], "d string")
     assert [r[0] for r in df.select(parse_order_date(F.col("d"))).collect()] == [None, None]
