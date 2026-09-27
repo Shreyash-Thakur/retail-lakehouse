@@ -57,3 +57,18 @@ def test_negative_quantities_over_tolerance_fail(spark):
     result = by_rule(evaluate_row_rules(batch(spark, rows)))["quantity_not_negative"]
     assert not result.passed
     assert result.failing_rows == 5
+
+
+def test_future_dates_fail_validity(spark):
+    rows = good_rows(10)
+    rows[0] = rows[0][:6] + (date(2999, 1, 1),)
+    assert not by_rule(evaluate_row_rules(batch(spark, rows)))["order_date_not_future"].passed
+
+
+def test_unresolved_skus_over_two_percent_fail_consistency(spark):
+    rows = good_rows(100)
+    for i in range(3):
+        rows[i] = rows[i][:1] + ("A-9001", None, False) + rows[i][4:]
+    result = by_rule(evaluate_row_rules(batch(spark, rows)))["sku_raw_resolves"]
+    assert not result.passed
+    assert "3 of 100 rows" in result.detail
