@@ -303,3 +303,51 @@ class CheckResult:
 
 class QualityCheckFailed(Exception):
     """Raised so the run stops before the Silver MERGE touches anything."""
+
+
+def row_rules() -> list[tuple[str, str, Column, float]]:
+    """(check, rule, condition a failing row meets, max share of rows allowed to fail).
+
+    The generator adds about 1% unknown SKUs, 0.5% negative quantities and 1%
+    null prices on purpose, so those rules tolerate a little. Keys and dates
+    tolerate nothing. Built in a function because Columns need a live session.
+    """
+    return [
+        ("completeness", "order_id_not_null", F.col("order_id").isNull(), 0.0),
+        ("completeness", "order_date_not_null", F.col("order_date").isNull(), 0.0),
+        ("completeness", "canonical_sku_not_null", F.col("canonical_sku").isNull(), 0.02),
+        ("validity", "quantity_not_negative", F.col("quantity") < 0, 0.01),
+        ("validity", "amount_positive", F.col("amount").isNull() | (F.col("amount") <= 0), 0.02),
+        ("validity", "order_date_not_future", F.col("order_date") > F.current_date(), 0.0),
+        (
+            "consistency",
+            "sku_raw_resolves",
+            F.col("sku_raw").isNotNull() & ~F.col("sku_resolved"),
+            0.02,
+        ),
+    ]
+
+
+def evaluate_row_rules(df: DataFrame) -> list[CheckResult]:
+    """Every row rule in a single aggregation pass over the batch."""
+    rules = row_rules()
+    aggs = [F.count(F.lit(1)).alias("_total")]
+    aggs += [F.sum(F.when(cond, 1).otherwise(0)).alias(rule) for _, rule, cond, _ in rules]
+    row = df.agg(*aggs).first()
+    total = row["_total"]
+    results = []
+    for check, rule, _, threshold in rules:
+        failing = row[rule] or 0
+        rate = failing / total if total else 0.0
+        results.append(
+            CheckResult(
+                check=check,
+                rule=rule,
+                passed=rate <= threshold,
+                failing_rows=failing,
+                total_rows=total,
+                threshold=threshold,
+                detail=f"{failing} of {total} rows ({rate:.2%}), limit {threshold:.0%}",
+            )
+        )
+    return results
