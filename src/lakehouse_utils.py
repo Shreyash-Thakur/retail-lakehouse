@@ -5,6 +5,8 @@ Databricks workspace. Notebooks import it by putting ../src on sys.path.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql import functions as F
 
@@ -281,3 +283,23 @@ def set_watermark(spark, table_name: str, last_processed_ts: str) -> None:
         """,
         args={"table_name": table_name, "ts": last_processed_ts},
     )
+
+
+# ---------------------------------------------------------------------------
+# Data quality
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class CheckResult:
+    check: str
+    rule: str
+    passed: bool
+    failing_rows: int
+    total_rows: int
+    threshold: float
+    detail: str
+
+
+class QualityCheckFailed(Exception):
+    """Raised so the run stops before the Silver MERGE touches anything."""
