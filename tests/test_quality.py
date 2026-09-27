@@ -44,3 +44,16 @@ def test_a_single_null_order_id_fails_completeness(spark):
     result = by_rule(evaluate_row_rules(batch(spark, rows)))["order_id_not_null"]
     assert not result.passed
     assert result.failing_rows == 1
+
+
+def test_negative_quantities_within_tolerance_pass(spark):
+    rows = good_rows(200)
+    rows[0] = with_quantity(rows[0], -1)  # 0.5%, the generator's rate
+    assert by_rule(evaluate_row_rules(batch(spark, rows)))["quantity_not_negative"].passed
+
+
+def test_negative_quantities_over_tolerance_fail(spark):
+    rows = [with_quantity(r, -1) if i < 5 else r for i, r in enumerate(good_rows(100))]  # 5%
+    result = by_rule(evaluate_row_rules(batch(spark, rows)))["quantity_not_negative"]
+    assert not result.passed
+    assert result.failing_rows == 5
