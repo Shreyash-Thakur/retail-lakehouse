@@ -1,7 +1,9 @@
 from datetime import date
 from decimal import Decimal
 
-from lakehouse_utils import evaluate_row_rules
+import pytest
+
+from lakehouse_utils import check_volume, evaluate_row_rules
 
 SCHEMA = (
     "order_id string, sku_raw string, canonical_sku string, sku_resolved boolean, "
@@ -72,3 +74,17 @@ def test_unresolved_skus_over_two_percent_fail_consistency(spark):
     result = by_rule(evaluate_row_rules(batch(spark, rows)))["sku_raw_resolves"]
     assert not result.passed
     assert "3 of 100 rows" in result.detail
+
+
+@pytest.mark.parametrize(
+    "projected, previous, passed",
+    [
+        (50_000, None, True),  # first run, nothing to compare
+        (55_000, 50_000, True),  # incremental batch on top
+        (50_000, 50_000, True),  # re-run of processed data
+        (80_000, 50_000, False),  # +60%
+        (20_000, 50_000, False),  # -60%
+    ],
+)
+def test_volume_band(projected, previous, passed):
+    assert check_volume(projected, previous).passed is passed
