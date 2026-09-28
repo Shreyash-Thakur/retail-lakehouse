@@ -351,3 +351,35 @@ def evaluate_row_rules(df: DataFrame) -> list[CheckResult]:
             )
         )
     return results
+
+
+VOLUME_RULE = "silver_total_within_band"
+
+
+def check_volume(
+    projected_total: int, previous_total: int | None, tolerance: float = 0.5
+) -> CheckResult:
+    """Silver's row count after this MERGE must stay within +/- tolerance of the last run.
+
+    Compares the projected Silver total rather than the batch size, so a small
+    incremental batch on top of a big table passes, and a batch that would
+    wipe out or balloon the table does not.
+    """
+    if not previous_total:
+        passed, detail = True, f"{projected_total} rows, no previous run to compare against"
+    else:
+        change = (projected_total - previous_total) / previous_total
+        passed = abs(change) <= tolerance
+        detail = (
+            f"{projected_total} rows vs {previous_total} last run ({change:+.1%}), "
+            f"limit +/-{tolerance:.0%}"
+        )
+    return CheckResult(
+        check="volume",
+        rule=VOLUME_RULE,
+        passed=passed,
+        failing_rows=0 if passed else 1,
+        total_rows=projected_total,
+        threshold=tolerance,
+        detail=detail,
+    )
