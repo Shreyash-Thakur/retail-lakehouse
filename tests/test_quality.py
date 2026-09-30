@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from lakehouse_utils import check_volume, evaluate_row_rules
+from lakehouse_utils import QualityCheckFailed, assert_passed, check_volume, evaluate_row_rules
 
 SCHEMA = (
     "order_id string, sku_raw string, canonical_sku string, sku_resolved boolean, "
@@ -88,3 +88,17 @@ def test_unresolved_skus_over_two_percent_fail_consistency(spark):
 )
 def test_volume_band(projected, previous, passed):
     assert check_volume(projected, previous).passed is passed
+
+
+def test_failures_raise_with_a_readable_message(spark):
+    rows = good_rows(10)
+    rows[0] = with_null_order_id(rows[0])
+    with pytest.raises(QualityCheckFailed) as err:
+        assert_passed(evaluate_row_rules(batch(spark, rows)))
+    message = str(err.value)
+    assert "1 quality check(s) failed" in message
+    assert "completeness.order_id_not_null: 1 of 10 rows (10.00%), limit 0%" in message
+
+
+def test_passing_results_do_not_raise(spark):
+    assert_passed(evaluate_row_rules(batch(spark, good_rows(10))))
