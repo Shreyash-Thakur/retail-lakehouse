@@ -5,10 +5,12 @@ Databricks workspace. Notebooks import it by putting ../src on sys.path.
 """
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass
 
 from pyspark.sql import Column, DataFrame, Window
 from pyspark.sql import functions as F
+from pyspark.sql import types as T
 
 
 CATALOG = "lakehouse"
@@ -395,3 +397,91 @@ def format_failures(results: list[CheckResult]) -> str:
 def assert_passed(results: list[CheckResult]) -> None:
     if not all(r.passed for r in results):
         raise QualityCheckFailed(format_failures(results))
+
+
+QUALITY_LOG_TABLE = "_quality_log"
+SILVER_TABLE = "silver_orders"
+
+QUALITY_LOG_SCHEMA = T.StructType(
+    [
+        T.StructField("run_id", T.StringType()),
+        T.StructField("check_name", T.StringType()),
+        T.StructField("rule", T.StringType()),
+        T.StructField("passed", T.BooleanType()),
+        T.StructField("failing_rows", T.LongType()),
+        T.StructField("total_rows", T.LongType()),
+        T.StructField("threshold", T.DoubleType()),
+        T.StructField("detail", T.StringType()),
+    ]
+)
+
+
+def ensure_quality_log_table(spark) -> None:
+    spark.sql(
+        f"""
+        CREATE TABLE IF NOT EXISTS {fq(QUALITY_LOG_TABLE)} (
+            run_id STRING,
+            check_name STRING,
+            rule STRING,
+            passed BOOLEAN,
+            failing_rows BIGINT,
+            total_rows BIGINT,
+            threshold DOUBLE,
+            detail STRING,
+            checked_at TIMESTAMP
+        ) USING DELTA
+        """
+    )
+
+
+def log_quality_results(spark, results: list[CheckResult], run_id: str) -> None:
+    rows = [
+        (run_id, r.check, r.rule, r.passed, r.failing_rows, r.total_rows, float(r.threshold), r.detail)
+        for r in results
+    ]
+    (
+        spark.createDataFrame(rows, QUALITY_LOG_SCHEMA)
+        .withColumn("checked_at", F.current_timestamp())
+        .write.mode("append")
+        .saveAsTable(fq(QUALITY_LOG_TABLE))
+    )
+
+
+def previous_silver_total(spark) -> int | None:
+    """Silver total recorded by the most recent run whose checks all passed."""
+    log = spark.table(fq(QUALITY_LOG_TABLE))
+    passed_runs = (
+        log.groupBy("run_id")
+        .agg(F.min(F.col("passed").cast("int")).alias("ok"), F.max("checked_at").alias("at"))
+        .filter(F.col("ok") == 1)
+    )
+    row = (
+        log.filter(F.col("rule") == VOLUME_RULE)
+        .join(passed_runs, "run_id")
+        .orderBy(F.col("at").desc())
+        .select("total_rows")
+        .first()
+    )
+    return row[0] if row else None
+
+
+def projected_silver_total(spark, batch: DataFrame) -> int:
+    """How many rows Silver will hold once this batch is merged on order_id."""
+    keys = batch.select("order_id")
+    if spark.catalog.tableExists(fq(SILVER_TABLE)):
+        keys = keys.unionByName(spark.table(fq(SILVER_TABLE)).select("order_id"))
+    return keys.distinct().count()
+
+
+def run_quality_checks(spark, batch: DataFrame, run_id: str | None = None) -> list[CheckResult]:
+    """Evaluate every check, log all results, then raise if any failed.
+
+    Results are logged before raising so a failed run still leaves a record.
+    """
+    ensure_quality_log_table(spark)
+    run_id = run_id or str(uuid.uuid4())
+    results = evaluate_row_rules(batch)
+    results.append(check_volume(projected_silver_total(spark, batch), previous_silver_total(spark)))
+    log_quality_results(spark, results, run_id)
+    assert_passed(results)
+    return results
