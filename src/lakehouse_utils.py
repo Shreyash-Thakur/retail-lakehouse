@@ -383,3 +383,15 @@ def check_volume(
         threshold=tolerance,
         detail=detail,
     )
+
+
+def format_failures(results: list[CheckResult]) -> str:
+    failed = [r for r in results if not r.passed]
+    lines = [f"{len(failed)} quality check(s) failed, stopping before the Silver MERGE:"]
+    lines += [f"  - {r.check}.{r.rule}: {r.detail}" for r in failed]
+    return "\n".join(lines)
+
+
+def assert_passed(results: list[CheckResult]) -> None:
+    if not all(r.passed for r in results):
+        raise QualityCheckFailed(format_failures(results))
