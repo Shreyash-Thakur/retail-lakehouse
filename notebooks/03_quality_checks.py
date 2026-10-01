@@ -33,3 +33,24 @@ from lakehouse_utils import (
     read_since_watermark,
     run_quality_checks,
 )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Checks on the pending batch
+# MAGIC
+# MAGIC Whatever 02_silver would process next: every Bronze row newer than the watermark. If the watermark
+# MAGIC is up to date there is nothing to check.
+
+# COMMAND ----------
+
+sku_master = spark.table(fq("bronze_sku_master"))
+pending = prepare_silver_batch(
+    {channel: read_since_watermark(spark, f"bronze_{channel}") for channel in CHANNELS}, sku_master
+)
+
+if pending.isEmpty():
+    print("Nothing pending: Silver is up to date with Bronze.")
+else:
+    for r in run_quality_checks(spark, pending):
+        print(f"{'PASS' if r.passed else 'FAIL'}  {r.check}.{r.rule}: {r.detail}")
