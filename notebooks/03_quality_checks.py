@@ -14,6 +14,11 @@
 # MAGIC | Validity | `order_date` not in the future | 0% |
 # MAGIC | Consistency | every `sku_raw` resolves to a `canonical_sku` | 2% |
 # MAGIC | Volume | Silver's total after this MERGE within ±50% of the last good run | 50% |
+# MAGIC
+# MAGIC **Why some rules tolerate a little.** The generator puts about 1% unknown SKUs, 0.5% negative
+# MAGIC quantities and 1% null prices into every batch on purpose. Silver keeps those rows, flagged, and the
+# MAGIC limits sit just above those rates. A file that is broken in a new way blows straight through them.
+# MAGIC Keys and dates tolerate nothing: a row with no order ID cannot be merged.
 
 # COMMAND ----------
 
