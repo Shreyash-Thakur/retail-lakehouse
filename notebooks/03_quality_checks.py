@@ -54,3 +54,11 @@ if pending.isEmpty():
 else:
     for r in run_quality_checks(spark, pending):
         print(f"{'PASS' if r.passed else 'FAIL'}  {r.check}.{r.rule}: {r.detail}")
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT run_id, check_name, rule, passed, detail, checked_at
+# MAGIC FROM lakehouse.retail._quality_log
+# MAGIC ORDER BY checked_at DESC, check_name, rule
+# MAGIC LIMIT 32
