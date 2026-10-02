@@ -100,3 +100,18 @@ with open(f"{BROKEN_PATH}/channel_a_broken.csv", "w", newline="") as f:
                 f"2026-04-{random.randint(1, 14):02d}",
             ]
         )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Run the pipeline on it
+# MAGIC
+# MAGIC Expected: `QualityCheckFailed` naming the failing rules with their counts. The run stops here, so the
+# MAGIC MERGE never happens.
+
+# COMMAND ----------
+
+broken_bronze = add_ingest_metadata(read_raw_csv(spark, f"{BROKEN_PATH}/channel_a_broken.csv"))
+broken_batch = prepare_silver_batch({"channel_a": broken_bronze}, sku_master)
+
+run_quality_checks(spark, broken_batch)
