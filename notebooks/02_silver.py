@@ -77,6 +77,7 @@ from lakehouse_utils import (
     fq,
     prepare_silver_batch,
     read_since_watermark,
+    run_quality_checks,
     set_watermark,
     slice_stats,
 )
@@ -124,6 +125,19 @@ display(
         F.max("order_date").alias("last_date"),
     )
 )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 3. Quality checks
+# MAGIC
+# MAGIC Same checks as 03_quality_checks. Results are written to `_quality_log`, and any failure raises,
+# MAGIC which stops this run before the MERGE. Silver is never written with a batch that failed.
+
+# COMMAND ----------
+
+for r in run_quality_checks(spark, batch):
+    print(f"PASS  {r.check}.{r.rule}: {r.detail}")
 
 # COMMAND ----------
 
