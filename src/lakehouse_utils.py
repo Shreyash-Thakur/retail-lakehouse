@@ -161,13 +161,19 @@ def deduplicate_latest(
 
     row_number rather than rank, so a tie still yields exactly one row. MERGE
     needs that: a source with two rows for one key makes the MERGE fail.
+
+    Rows with a null key pass through untouched. The window would otherwise put
+    them all in one partition and keep one, hiding from the completeness check
+    how many rows arrived without a key.
     """
     window = Window.partitionBy(key).orderBy(*[F.col(c).desc_nulls_last() for c in order_by])
-    return (
-        df.withColumn("_rn", F.row_number().over(window))
+    deduped = (
+        df.filter(F.col(key).isNotNull())
+        .withColumn("_rn", F.row_number().over(window))
         .filter(F.col("_rn") == 1)
         .drop("_rn")
     )
+    return deduped.unionByName(df.filter(F.col(key).isNull()))
 
 
 def latest_sku_master(sku_master: DataFrame) -> DataFrame:

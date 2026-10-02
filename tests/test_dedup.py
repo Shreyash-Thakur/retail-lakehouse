@@ -38,3 +38,16 @@ def test_full_tie_still_returns_exactly_one_row(spark):
         """
     )
     assert deduplicate_latest(df).count() == 1
+
+
+def test_rows_without_a_key_are_not_collapsed(spark):
+    df = spark.sql(
+        """
+        SELECT * FROM VALUES
+          (NULL, 100, TIMESTAMP'2026-09-20 10:00:00', DATE'2026-03-14'),
+          (NULL, 200, TIMESTAMP'2026-09-20 10:00:00', DATE'2026-03-14'),
+          ('A1', 300, TIMESTAMP'2026-09-20 10:00:00', DATE'2026-03-14')
+        AS t(order_id, amount, _ingested_at, order_date)
+        """
+    )
+    assert deduplicate_latest(df).filter("order_id IS NULL").count() == 2
