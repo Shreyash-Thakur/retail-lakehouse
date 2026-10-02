@@ -67,3 +67,36 @@ else:
 # MAGIC FROM lakehouse.retail._quality_log
 # MAGIC ORDER BY checked_at DESC, check_name, rule
 # MAGIC LIMIT 32
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## A deliberately broken file
+# MAGIC
+# MAGIC A channel_a export where 10% of rows have no order ID and 15% have negative quantities. It goes
+# MAGIC through the same read, the same Silver transformation and the same checks as a real file. It is not
+# MAGIC appended to Bronze, so the real tables stay clean.
+
+# COMMAND ----------
+
+import random
+
+random.seed(7)
+
+BROKEN_PATH = f"{RAW_VOLUME_PATH}/broken"
+os.makedirs(BROKEN_PATH, exist_ok=True)
+
+with open(f"{BROKEN_PATH}/channel_a_broken.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["order_id", "sku", "qty", "price", "order_date"])
+    for i in range(200):
+        qty = random.randint(1, 5)
+        writer.writerow(
+            [
+                "" if i % 10 == 0 else f"A{900_000 + i:07d}",
+                f"A-{random.randint(1001, 1040)}",
+                str(-qty if i % 7 == 1 else qty),
+                f"{qty * 499:.2f}",
+                f"2026-04-{random.randint(1, 14):02d}",
+            ]
+        )
