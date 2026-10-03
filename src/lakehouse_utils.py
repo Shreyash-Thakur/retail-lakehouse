@@ -491,3 +491,29 @@ def run_quality_checks(spark, batch: DataFrame, run_id: str | None = None) -> li
     log_quality_results(spark, results, run_id)
     assert_passed(results)
     return results
+
+
+# ---------------------------------------------------------------------------
+# Gold
+# ---------------------------------------------------------------------------
+
+
+def valid_sales(silver: DataFrame) -> DataFrame:
+    """Rows fit to count as revenue: positive quantity and amount.
+
+    Silver keeps the tolerated dirt (flagged or not) so nothing is lost; Gold
+    is where it stops counting.
+    """
+    return silver.filter((F.col("quantity") > 0) & (F.col("amount") > 0))
+
+
+def build_daily_sales(silver: DataFrame) -> DataFrame:
+    return (
+        valid_sales(silver)
+        .groupBy("order_date", "channel")
+        .agg(
+            F.count("order_id").alias("order_count"),
+            F.sum("quantity").alias("total_units"),
+            F.sum("amount").alias("total_revenue"),
+        )
+    )
