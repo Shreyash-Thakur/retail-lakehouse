@@ -23,6 +23,10 @@
 # MAGIC **Why volume compares Silver's total, not the batch size.** An incremental batch is a tenth the size
 # MAGIC of the first load, and a re-run with nothing new is zero, so comparing batch sizes would fail every
 # MAGIC normal run. What should not happen is Silver suddenly halving or doubling.
+# MAGIC
+# MAGIC **Why fail the run instead of quarantining bad rows.** A failed run is loud, and a quarantine table
+# MAGIC nobody reads is quiet. At this size, stopping and looking is cheaper than building the quarantine
+# MAGIC flow. Every result, pass or fail, is written to `_quality_log` before anything is raised.
 
 # COMMAND ----------
 
