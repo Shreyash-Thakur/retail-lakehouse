@@ -35,3 +35,20 @@ silver = spark.table(fq("silver_orders"))
     .option("overwriteSchema", "true")
     .saveAsTable(fq("gold_daily_sales"))
 )
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM lakehouse.retail.gold_daily_sales ORDER BY order_date DESC, channel LIMIT 20
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC -- Revenue share by channel across the whole period.
+# MAGIC SELECT channel,
+# MAGIC        sum(order_count) AS orders,
+# MAGIC        sum(total_revenue) AS revenue,
+# MAGIC        round(100 * sum(total_revenue) / sum(sum(total_revenue)) OVER (), 1) AS revenue_pct
+# MAGIC FROM lakehouse.retail.gold_daily_sales
+# MAGIC GROUP BY channel
+# MAGIC ORDER BY revenue DESC
