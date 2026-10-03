@@ -19,6 +19,10 @@
 # MAGIC quantities and 1% null prices into every batch on purpose. Silver keeps those rows, flagged, and the
 # MAGIC limits sit just above those rates. A file that is broken in a new way blows straight through them.
 # MAGIC Keys and dates tolerate nothing: a row with no order ID cannot be merged.
+# MAGIC
+# MAGIC **Why volume compares Silver's total, not the batch size.** An incremental batch is a tenth the size
+# MAGIC of the first load, and a re-run with nothing new is zero, so comparing batch sizes would fail every
+# MAGIC normal run. What should not happen is Silver suddenly halving or doubling.
 
 # COMMAND ----------
 
