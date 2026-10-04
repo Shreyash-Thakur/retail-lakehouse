@@ -517,3 +517,18 @@ def build_daily_sales(silver: DataFrame) -> DataFrame:
             F.sum("amount").alias("total_revenue"),
         )
     )
+
+
+def build_sku_performance(silver: DataFrame) -> DataFrame:
+    """Per canonical SKU. Unresolved SKUs have no product to report against."""
+    return (
+        valid_sales(silver)
+        .filter(F.col("sku_resolved"))
+        .groupBy("canonical_sku", "product_name", "category")
+        .agg(
+            F.sum("quantity").alias("total_units"),
+            F.sum("amount").alias("total_revenue"),
+            F.min("order_date").alias("first_sold"),
+            F.max("order_date").alias("last_sold"),
+        )
+    )
