@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import pytest
 
-from lakehouse_utils import build_daily_sales
+from lakehouse_utils import build_daily_sales, build_sku_performance
 
 
 @pytest.fixture
@@ -32,3 +32,11 @@ def test_daily_sales_aggregates_valid_rows_only(silver):
 def test_unresolved_skus_still_count_towards_daily_sales(silver):
     rows = {(r["order_date"], r["channel"]): r for r in build_daily_sales(silver).collect()}
     assert rows[(date(2026, 3, 20), "channel_a")]["total_revenue"] == Decimal("250.00")
+
+
+def test_sku_performance_skips_unresolved_and_invalid(silver):
+    rows = {r["canonical_sku"]: r for r in build_sku_performance(silver).collect()}
+    assert set(rows) == {"SKU-1001", "SKU-1002"}
+    tee = rows["SKU-1001"]
+    assert (tee["total_units"], tee["total_revenue"]) == (3, Decimal("1497.00"))
+    assert tee["first_sold"] == tee["last_sold"] == date(2026, 3, 14)
