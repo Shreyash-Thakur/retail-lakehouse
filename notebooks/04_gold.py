@@ -17,7 +17,7 @@ import sys
 
 sys.path.append(os.path.abspath("../src"))
 
-from lakehouse_utils import build_daily_sales, fq
+from lakehouse_utils import build_daily_sales, build_sku_performance, fq
 
 silver = spark.table(fq("silver_orders"))
 
@@ -52,3 +52,23 @@ silver = spark.table(fq("silver_orders"))
 # MAGIC FROM lakehouse.retail.gold_daily_sales
 # MAGIC GROUP BY channel
 # MAGIC ORDER BY revenue DESC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## gold_sku_performance
+
+# COMMAND ----------
+
+(
+    build_sku_performance(silver)
+    .write.format("delta")
+    .mode("overwrite")
+    .option("overwriteSchema", "true")
+    .saveAsTable(fq("gold_sku_performance"))
+)
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM lakehouse.retail.gold_sku_performance ORDER BY total_revenue DESC LIMIT 10
