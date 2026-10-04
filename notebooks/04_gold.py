@@ -9,6 +9,9 @@
 # MAGIC
 # MAGIC Silver keeps the tolerated dirt. Gold counts only rows with a positive quantity and amount, and
 # MAGIC the SKU table also leaves out SKUs that never resolved.
+# MAGIC
+# MAGIC Overwrite rather than MERGE because Gold is small and fully derived. Rebuilding it from Silver is cheap
+# MAGIC and cannot drift.
 
 # COMMAND ----------
 
