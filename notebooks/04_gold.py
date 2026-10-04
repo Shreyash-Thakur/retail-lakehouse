@@ -72,3 +72,20 @@ silver = spark.table(fq("silver_orders"))
 
 # MAGIC %sql
 # MAGIC SELECT * FROM lakehouse.retail.gold_sku_performance ORDER BY total_revenue DESC LIMIT 10
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Reconciliation
+# MAGIC
+# MAGIC Both Gold tables come from the same valid Silver rows, so their revenue should differ only by the
+# MAGIC unresolved SKUs, which the SKU table leaves out.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT
+# MAGIC   (SELECT sum(total_revenue) FROM lakehouse.retail.gold_daily_sales) AS daily_revenue,
+# MAGIC   (SELECT sum(total_revenue) FROM lakehouse.retail.gold_sku_performance) AS sku_revenue,
+# MAGIC   (SELECT sum(amount) FROM lakehouse.retail.silver_orders
+# MAGIC     WHERE quantity > 0 AND amount > 0 AND NOT sku_resolved) AS unresolved_revenue
