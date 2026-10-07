@@ -21,3 +21,18 @@ from pyspark.sql import functions as F
 sys.path.append(os.path.abspath("../src"))
 
 from lakehouse_utils import RAW_VOLUME_PATH, add_ingest_metadata, fq, read_raw_csv
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 1. Time travel
+# MAGIC
+# MAGIC **What it proves:** every write to a Delta table creates a new version, and old versions stay readable
+# MAGIC until they are vacuumed. Version 0 of `silver_orders` is the empty table 02_silver created. Later
+# MAGIC versions are the MERGEs. Reading `VERSION AS OF` an old version gives the old count without any
+# MAGIC backup. That is also how you recover from a bad write.
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC DESCRIBE HISTORY lakehouse.retail.silver_orders
