@@ -36,3 +36,8 @@ from lakehouse_utils import RAW_VOLUME_PATH, add_ingest_metadata, fq, read_raw_c
 
 # MAGIC %sql
 # MAGIC DESCRIBE HISTORY lakehouse.retail.silver_orders
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT count(*) AS rows_at_version_0 FROM lakehouse.retail.silver_orders VERSION AS OF 0
