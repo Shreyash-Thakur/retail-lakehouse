@@ -41,3 +41,15 @@ from lakehouse_utils import RAW_VOLUME_PATH, add_ingest_metadata, fq, read_raw_c
 
 # MAGIC %sql
 # MAGIC SELECT count(*) AS rows_at_version_0 FROM lakehouse.retail.silver_orders VERSION AS OF 0
+
+# COMMAND ----------
+
+latest = spark.sql("DESCRIBE HISTORY lakehouse.retail.silver_orders").agg(F.max("version")).first()[0]
+
+counts = [
+    (v, spark.sql(f"SELECT count(*) FROM lakehouse.retail.silver_orders VERSION AS OF {v}").first()[0])
+    for v in range(latest + 1)
+]
+display(spark.createDataFrame(counts, "version long, row_count long"))
+
+print(f"version 0: {counts[0][1]:,} rows, version {latest}: {counts[-1][1]:,} rows")
