@@ -105,3 +105,14 @@ print("discount" in before_cols, before_cols)
 
 after_cols = spark.table(fq("bronze_channel_a")).columns
 print("added:", [c for c in after_cols if c not in before_cols])
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC -- Old files have no discount: those rows read it as null.
+# MAGIC SELECT regexp_extract(_source_file, '[^/]+$', 0) AS source_file,
+# MAGIC        count(*) AS rows,
+# MAGIC        count(discount) AS rows_with_discount
+# MAGIC FROM lakehouse.retail.bronze_channel_a
+# MAGIC GROUP BY ALL
+# MAGIC ORDER BY source_file
