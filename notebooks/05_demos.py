@@ -53,3 +53,36 @@ counts = [
 display(spark.createDataFrame(counts, "version long, row_count long"))
 
 print(f"version 0: {counts[0][1]:,} rows, version {latest}: {counts[-1][1]:,} rows")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 2. Schema evolution
+# MAGIC
+# MAGIC **What it proves:** channel_a starts sending a `discount` column. With `mergeSchema` the append adds
+# MAGIC the column to `bronze_channel_a`. Existing rows read it as null, and no ALTER TABLE or rewrite is needed.
+# MAGIC Without `mergeSchema` the same append fails with a schema mismatch, which is the safe default.
+# MAGIC
+# MAGIC Silver is unaffected, because it selects named columns per channel and never sees `discount`.
+
+# COMMAND ----------
+
+import random
+
+random.seed(11)
+
+with open(f"{RAW_VOLUME_PATH}/channel_a_discount.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["order_id", "sku", "qty", "price", "order_date", "discount"])
+    for i in range(200):
+        qty = random.randint(1, 5)
+        writer.writerow(
+            [
+                f"A{800_000 + i:07d}",
+                f"A-{random.randint(1001, 1040)}",
+                str(qty),
+                f"{qty * 799:.2f}",
+                f"2026-04-{random.randint(15, 20):02d}",
+                random.choice(["0", "5", "10", "15"]),
+            ]
+        )
