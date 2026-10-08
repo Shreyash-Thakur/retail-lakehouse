@@ -86,3 +86,22 @@ with open(f"{RAW_VOLUME_PATH}/channel_a_discount.csv", "w", newline="") as f:
                 random.choice(["0", "5", "10", "15"]),
             ]
         )
+
+# COMMAND ----------
+
+before_cols = spark.table(fq("bronze_channel_a")).columns
+print("discount" in before_cols, before_cols)
+
+# COMMAND ----------
+
+(
+    add_ingest_metadata(read_raw_csv(spark, f"{RAW_VOLUME_PATH}/channel_a_discount.csv"))
+    .write.format("delta")
+    .mode("append")
+    .option("mergeSchema", "true")
+    .partitionBy("_ingest_date")
+    .saveAsTable(fq("bronze_channel_a"))
+)
+
+after_cols = spark.table(fq("bronze_channel_a")).columns
+print("added:", [c for c in after_cols if c not in before_cols])
