@@ -136,3 +136,8 @@ latest_ingest = spark.table(fq("bronze_channel_a")).agg(F.max("_ingest_date")).f
 
 pruned = spark.table(fq("bronze_channel_a")).filter(F.col("_ingest_date") == F.lit(latest_ingest))
 pruned.explain(mode="formatted")
+
+# COMMAND ----------
+
+# For contrast: filtering on a non-partition column. No PartitionFilters, so every file is a candidate.
+spark.table(fq("bronze_channel_a")).filter(F.col("sku") == "A-1001").explain(mode="formatted")
