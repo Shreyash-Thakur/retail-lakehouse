@@ -116,3 +116,23 @@ print("added:", [c for c in after_cols if c not in before_cols])
 # MAGIC FROM lakehouse.retail.bronze_channel_a
 # MAGIC GROUP BY ALL
 # MAGIC ORDER BY source_file
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 3. Partition pruning
+# MAGIC
+# MAGIC **What it proves:** Bronze is partitioned by `_ingest_date`, so each load date is its own directory of
+# MAGIC files. A filter on that column is resolved against the partition values before any file is opened,
+# MAGIC and files from other dates are never read.
+# MAGIC
+# MAGIC In the physical plan, look at the scan node for **`PartitionFilters: [isnotnull(_ingest_date), (_ingest_date = ...)]`**.
+# MAGIC A filter on an ordinary column shows up under `PushedFilters` / `DataFilters` instead, and that only
+# MAGIC skips row groups inside files that still have to be opened.
+
+# COMMAND ----------
+
+latest_ingest = spark.table(fq("bronze_channel_a")).agg(F.max("_ingest_date")).first()[0]
+
+pruned = spark.table(fq("bronze_channel_a")).filter(F.col("_ingest_date") == F.lit(latest_ingest))
+pruned.explain(mode="formatted")
