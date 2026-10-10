@@ -23,3 +23,12 @@ def test_channels_without_meta_get_null_meta(spark):
     out = normalise_columns(df, "channel_d")
     assert tuple(out.columns) == CONFORMED_COLUMNS
     assert out.first()["meta"] is None
+
+
+def test_unmapped_columns_are_dropped(spark):
+    df = spark.createDataFrame(
+        [("A0000001", "A-1001", "1", "499.00", "2026-03-14", "10")],
+        "order_id string, sku string, qty string, price string, order_date string, "
+        "discount string",
+    )
+    assert "discount" not in normalise_columns(df, "channel_a").columns
