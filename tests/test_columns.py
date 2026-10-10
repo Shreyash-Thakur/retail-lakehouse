@@ -25,6 +25,16 @@ def test_channels_without_meta_get_null_meta(spark):
     assert out.first()["meta"] is None
 
 
+def test_audit_columns_are_carried_through(spark):
+    df = spark.createDataFrame(
+        [("A0000001", "A-1001", "1", "499.00", "2026-03-14", "2026-09-20 10:00:00", "f.csv")],
+        "order_id string, sku string, qty string, price string, order_date string, "
+        "_ingested_at string, _source_file string",
+    )
+    out = normalise_columns(df, "channel_a")
+    assert out.columns[-2:] == ["_ingested_at", "_source_file"]
+
+
 def test_unmapped_columns_are_dropped(spark):
     df = spark.createDataFrame(
         [("A0000001", "A-1001", "1", "499.00", "2026-03-14", "10")],
