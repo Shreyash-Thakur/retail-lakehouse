@@ -52,3 +52,8 @@ def test_duplicates_collapse_to_the_later_order_date(bronze, sku_master):
 def test_unknown_sku_is_flagged_not_dropped(bronze, sku_master):
     row = prepare_silver_batch(bronze, sku_master).filter("order_id = 'A0000002'").first()
     assert row["sku_resolved"] is False
+
+
+def test_channel_c_promo_code_comes_through(bronze, sku_master):
+    row = prepare_silver_batch(bronze, sku_master).filter("order_id = 'c_1'").first()
+    assert (row["promo_code"], row["order_source"]) == ("SAVE10", "app")
