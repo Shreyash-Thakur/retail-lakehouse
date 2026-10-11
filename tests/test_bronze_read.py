@@ -19,6 +19,12 @@ def test_json_meta_stays_in_one_column(spark, tmp_path):
     assert json.loads(df.first()["meta"]) == {"promo_code": "SAVE10", "source": "app"}
 
 
+def test_everything_is_read_as_string(spark, tmp_path):
+    path = tmp_path / "channel_c.csv"
+    write_channel_c(path)
+    assert {t for _, t in read_raw_csv(spark, str(path)).dtypes} == {"string"}
+
+
 def test_ingest_metadata_records_the_source_file(spark, tmp_path):
     path = tmp_path / "channel_c.csv"
     write_channel_c(path)
