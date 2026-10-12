@@ -261,3 +261,11 @@ display(
     .csv(f"{RAW_PATH}/channel_c.csv")
     .limit(20)
 )
+
+# COMMAND ----------
+
+import os
+
+for name in sorted(n for n in os.listdir(RAW_PATH) if n.endswith(".csv")):
+    with open(f"{RAW_PATH}/{name}") as f:
+        print(f"{name:<24}{sum(1 for _ in f) - 1:>8,} rows")
